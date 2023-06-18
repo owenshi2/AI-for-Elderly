@@ -1,0 +1,8 @@
+revChatGPT
+pyttsx3
+pyaudio
+TTS
+simpleaudio
+SpeechRecognition
+requests
+newsapi
