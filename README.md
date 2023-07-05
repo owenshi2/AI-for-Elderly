@@ -3,6 +3,8 @@ In terminal 1, run 'npm start' to start frontend website
 
 In terminal 2, run 'node server.js' to start backend server
 
+Then click 'run python code' button to start the chatbot
+
 It's kinda unstable so mess around with it and wait for it I guess...
 
 
