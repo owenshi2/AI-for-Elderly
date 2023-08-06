@@ -1,32 +1,21 @@
-import whisper
 import gradio as gr 
-import time
 import warnings
-import json
 import os
-import ffmpeg
 from gtts import gTTS
 from revChatGPT.V1 import Chatbot
-from TTS.api import TTS
-# from playsound import playsound
 import os
 import requests
-# from dotenv import load_dotenv
-import simpleaudio as sa
-# import revChatGPT
 from datetime import datetime
 from newsapi.articles import Articles
 
+
 import speech_recognition
-import pyttsx3
 import gradio as gr
 from transformers import pipeline
 
 warnings.filterwarnings("ignore")
 
 recognizer = speech_recognition.Recognizer()
-modelname = TTS.list_models()[0]
-tts = TTS(modelname)
 
 #change this to your own token!
 chatbot = Chatbot(config={
@@ -62,6 +51,71 @@ def ask_chatGPT(p):
 # p = txtData
 # # ask_chatGPT(p)
 # print("prompt: ", ask_chatGPT(p))
+timeDat = {}
+def parseCommand(comm):
+  tokens = comm.strip().split()
+  id = comm.strip().split('#')[1]
+  type = tokens[0]
+  length = len(tokens)
+  if type == "add":
+    desc = ""
+    for i in range(4, length):
+      if tokens[i].startswith('#'):
+        break
+      desc += tokens[i] + ' '
+      #store description in dict
+    if id not in timeDat: #time is free
+      t = datetime.strptime(tokens[2], '%H:%M')
+      str_t = t.strftime('%H:%M')
+      d = datetime.strptime(tokens[3], '%m/%d/%Y')
+      str_d = d.strftime('%m/%d/%Y')
+      event = {
+        'time' : str_t,
+        #datetime.datetime.strptime(tokens[2], '%H:%M'),#2:00
+        # 'date' : datetime.datetime.strptime(tokens[3], '%m/%d/%Y'),#04/06/23
+        # 'time' : tokens[2], #just show the time the person what to set
+        'date' :str_d, #show the date also
+        'descript' : desc
+      } # time : 2:00, date : 04/06/23, desc : (description)
+      timeDat[id] = event
+  elif type == "edit":
+    if id in timeDat:
+      if tokens[2] == 'time':
+        t = datetime.strptime(tokens[3], '%H:%M')
+        str_t = t.strftime('%H:%M')
+        timeDat[id]['time'] = str_t
+        # datetime.strptime(tokens[4], '%H:%M')
+      elif tokens[2] == 'date':
+        d = datetime.strptime(tokens[3], '%m/%d/%Y')
+        str_d = d.strftime('%m/%d/%Y')
+        timeDat[id]['date'] = str_d
+        #datetime.strptime(tokens[3], '%m/%d/%Y')
+      else:
+        timeDat[id][tokens[2]] = desc
+      # timeDat[id][] = #do whatever edits
+  elif type == "remove":
+    if id in timeDat:
+      # timeDat[id].pop(tokens[2], None)
+      del timeDat[id]
+      #remove id and associated description
+  elif type == "print":
+    for x in timeDat:
+      print("id : ",x)
+      for key, value in timeDat[x].items():
+        print(key, ':', value)
+  else:
+    print("Invalid Command")
+
+
+# with open('GPT-prompt-ex.txt', 'r') as file:
+#   txtData = file.read()
+# # print(txtData)
+# # ask_chatGPT("Hello")
+
+# p = txtData
+# training = ask_chatGPT(p)
+# print(training)
+
 
 
 def transcribe(audio):
@@ -69,6 +123,14 @@ def transcribe(audio):
     result_text = voiceRec(audio)
     
     out_result = ask_chatGPT(result_text)
+    
+    for line in out_result.split('\n'):
+      # print("hi")
+      if 'Command: ' in line:
+        eid = line.split('#')[1].removesuffix(']')
+        commandin = line.removeprefix('[Command: ').removesuffix(']').split('#')[0] + '#' + str(eid)
+        parseCommand(commandin)
+
     
     audioobj = gTTS(text = out_result, 
                     lang = language, 
