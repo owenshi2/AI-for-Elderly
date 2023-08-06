@@ -4,30 +4,47 @@ import os
 from gtts import gTTS
 from revChatGPT.V1 import Chatbot
 import os
-import requests
 from datetime import datetime
 from newsapi.articles import Articles
 
-
-import speech_recognition
+import speech_recognition as sr
 import gradio as gr
-from transformers import pipeline
 
 warnings.filterwarnings("ignore")
 
-recognizer = speech_recognition.Recognizer()
+recognizer = sr.Recognizer()
 
 #change this to your own token!
 chatbot = Chatbot(config={
   "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1UaEVOVUpHTkVNMVFURTRNMEZCTWpkQ05UZzVNRFUxUlRVd1FVSkRNRU13UmtGRVFrRXpSZyJ9.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJ4dWVzYWxseTNAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWV9LCJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOnsidXNlcl9pZCI6InVzZXItTmVvUUNyWnZhUnJCMEFYSXJaeVpEYnZYIn0sImlzcyI6Imh0dHBzOi8vYXV0aDAub3BlbmFpLmNvbS8iLCJzdWIiOiJhdXRoMHw2M2RmMmJmMzI5MjM2NzU0MDJjOGNjNGQiLCJhdWQiOlsiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS92MSIsImh0dHBzOi8vb3BlbmFpLm9wZW5haS5hdXRoMGFwcC5jb20vdXNlcmluZm8iXSwiaWF0IjoxNjkxMTY2NzAxLCJleHAiOjE2OTIzNzYzMDEsImF6cCI6IlRkSkljYmUxNldvVEh0Tjk1bnl5d2g1RTR5T282SXRHIiwic2NvcGUiOiJvcGVuaWQgcHJvZmlsZSBlbWFpbCBtb2RlbC5yZWFkIG1vZGVsLnJlcXVlc3Qgb3JnYW5pemF0aW9uLnJlYWQgb3JnYW5pemF0aW9uLndyaXRlIG9mZmxpbmVfYWNjZXNzIn0.o57gnuBHZUkCo48-_65maeWrHF67N98JbYrsLs1OsERhAJpZg4bJ1sncplkR_xlAOUzywRpcpQXpk9luLXRl75rgQEMvcO2Hr4ODxQH5kMlXkR7dzoP9guYqMk6A9lipEZ7Tz5gla0HXAAeSAPlf5VmsevHSaqywwCiokODAeygtYo7oV4d37zOLLYO2DLfIWqXK7EviUmPLYfu50ouT_TI4hDzxq45713jRMHBGNx0jiImToU_LgaNk0HxuLli6Pu5pufdCoHhSg6bmpr-w7LHvOlCa58xq-LebvGKvdrqKp3DM0bJ1NbVktfj-_iUCMen6DRPMwIhbVGfV5Hm_GQ"
 })
 
-p = pipeline("automatic-speech-recognition")
 audiopath = 'Temp.mp3'
 
+
 def voiceRec(audio):
-    text = p(audio)["text"]
-    return text
+    # Initialize the recognizer
+    recognizer = sr.Recognizer()
+
+    # Load the audio file
+    with sr.AudioFile(audio) as source:
+        # Adjust for ambient noise for better recognition
+        recognizer.adjust_for_ambient_noise(source)
+        print("Converting audio to text...")
+
+        try:
+            # Listen to the audio and convert it to text
+            text = recognizer.recognize_google(audio_data=recognizer.record(source), language="en-US")
+            return text
+
+        except sr.UnknownValueError:
+            print("Sorry, I could not understand the audio.")
+            return None
+
+        except sr.RequestError:
+            print("Sorry, there was an issue connecting to Google's servers.")
+            return None
+
 
 
 def ask_chatGPT(p):
@@ -42,15 +59,8 @@ def ask_chatGPT(p):
 
   return fullmsg
 
-#train gpt to understand some prompt!
-# with open('GPT-prompt-ex.txt', 'r') as file:
-#   txtData = file.read()
-# # print(txtData)
-# # ask_chatGPT("Hello")
 
-# p = txtData
-# # ask_chatGPT(p)
-# print("prompt: ", ask_chatGPT(p))
+
 timeDat = {}
 def parseCommand(comm):
   tokens = comm.strip().split()
@@ -107,14 +117,14 @@ def parseCommand(comm):
     print("Invalid Command")
 
 
-# with open('GPT-prompt-ex.txt', 'r') as file:
-#   txtData = file.read()
-# # print(txtData)
-# # ask_chatGPT("Hello")
+with open('GPT-prompt-ex.txt', 'r') as file:
+  txtData = file.read()
+# print(txtData)
+# ask_chatGPT("Hello")
 
-# p = txtData
-# training = ask_chatGPT(p)
-# print(training)
+p = txtData
+training = ask_chatGPT(p)
+print(training)
 
 
 
