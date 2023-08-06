@@ -1,8 +1,10 @@
+transformers
+torch
 revChatGPT
-pyttsx3
-pyaudio
-TTS
-simpleaudio
+gtts
 SpeechRecognition
 requests
 newsapi
+datetime
+gradio
+ffmpeg
