@@ -8,3 +8,4 @@ newsapi
 datetime
 gradio
 ffmpeg
+uvicorn
