@@ -6,13 +6,23 @@ from datetime import datetime
 from newsapi.articles import Articles
 import speech_recognition as sr
 from fastapi import FastAPI
+from fastapi import Request
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from pathlib import Path
 # from fastapi import FastAPI
 
 
 warnings.filterwarnings("ignore")
 app = FastAPI()
 recognizer = sr.Recognizer()
+templates = Jinja2Templates(directory='templates')
+app.mount(
+    "/static",
+    StaticFiles(directory=Path(__file__).parent.absolute() / "static"),
+    name="static",
+)
 
 
 #change this to your own token!
@@ -192,6 +202,7 @@ outp = gr.Interface(
 INP_ROUTE = '/input'
 OUTP_ROUTE = '/output'
 OUT_ROUTE = '/out'
+CALEND_ROUTE = '/calend'
 
 #Design
 
@@ -243,6 +254,7 @@ result_html = f'''
 <div>
 <iframe src={OUTP_ROUTE} height=75% width=100%></iframe>
 <button style="{button_style}" onclick="window.location.href='/';">Back to Record</button>
+<iframe src={CALEND_ROUTE} height=130% width=100%></iframe>
 </div>
 </body>
 '''
@@ -254,6 +266,10 @@ def index():
 @app.get(f"{OUT_ROUTE}", response_class=HTMLResponse)
 def result():
   return result_html
+
+@app.get(f'{CALEND_ROUTE}', response_class=HTMLResponse)
+def calend(request: Request):
+  return templates.TemplateResponse('calendar.html', {"request": request})
 
 app = gr.mount_gradio_app(app, inp, path=INP_ROUTE)
 app = gr.mount_gradio_app(app, outp, path=OUTP_ROUTE)
