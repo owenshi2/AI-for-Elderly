@@ -7,3 +7,5 @@ Please use personal key instead when using: [https://chat.openai.com/api/auth/se
 
 # From Sally:
 To run the code, download frontend.py (or copy it to a new python file), run 'gradio frontend.py', and open in the url it provided. When you ask, you can add something like 'please answer the question in 3 sentence', otherwise it would take very long for it to answer
+
+To use automation you need to download chromedriver: https://chromedriver.chromium.org/downloads
