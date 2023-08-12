@@ -8,10 +8,18 @@ import speech_recognition as sr
 from fastapi import FastAPI
 from fastapi import Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
+from fastapi.responses import RedirectResponse
+import subprocess
+from selenium import webdriver
+import time
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
 # from fastapi import FastAPI
+
 
 
 warnings.filterwarnings("ignore")
@@ -30,7 +38,7 @@ app.mount(
 #   "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1UaEVOVUpHTkVNMVFURTRNMEZCTWpkQ05UZzVNRFUxUlRVd1FVSkRNRU13UmtGRVFrRXpSZyJ9.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJ4dWVzYWxseTNAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWV9LCJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOnsidXNlcl9pZCI6InVzZXItTmVvUUNyWnZhUnJCMEFYSXJaeVpEYnZYIn0sImlzcyI6Imh0dHBzOi8vYXV0aDAub3BlbmFpLmNvbS8iLCJzdWIiOiJhdXRoMHw2M2RmMmJmMzI5MjM2NzU0MDJjOGNjNGQiLCJhdWQiOlsiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS92MSIsImh0dHBzOi8vb3BlbmFpLm9wZW5haS5hdXRoMGFwcC5jb20vdXNlcmluZm8iXSwiaWF0IjoxNjkxMTY2NzAxLCJleHAiOjE2OTIzNzYzMDEsImF6cCI6IlRkSkljYmUxNldvVEh0Tjk1bnl5d2g1RTR5T282SXRHIiwic2NvcGUiOiJvcGVuaWQgcHJvZmlsZSBlbWFpbCBtb2RlbC5yZWFkIG1vZGVsLnJlcXVlc3Qgb3JnYW5pemF0aW9uLnJlYWQgb3JnYW5pemF0aW9uLndyaXRlIG9mZmxpbmVfYWNjZXNzIn0.o57gnuBHZUkCo48-_65maeWrHF67N98JbYrsLs1OsERhAJpZg4bJ1sncplkR_xlAOUzywRpcpQXpk9luLXRl75rgQEMvcO2Hr4ODxQH5kMlXkR7dzoP9guYqMk6A9lipEZ7Tz5gla0HXAAeSAPlf5VmsevHSaqywwCiokODAeygtYo7oV4d37zOLLYO2DLfIWqXK7EviUmPLYfu50ouT_TI4hDzxq45713jRMHBGNx0jiImToU_LgaNk0HxuLli6Pu5pufdCoHhSg6bmpr-w7LHvOlCa58xq-LebvGKvdrqKp3DM0bJ1NbVktfj-_iUCMen6DRPMwIhbVGfV5Hm_GQ"
 # })
 chatbot = Chatbot(config = {
-  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1UaEVOVUpHTkVNMVFURTRNMEZCTWpkQ05UZzVNRFUxUlRVd1FVSkRNRU13UmtGRVFrRXpSZyJ9.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJvd2Vuc2hpMjAxMkBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZX0sImh0dHBzOi8vYXBpLm9wZW5haS5jb20vYXV0aCI6eyJ1c2VyX2lkIjoidXNlci1wbE9GR3RxZkZtSzNaU0VuOFpIMEJVeTEifSwiaXNzIjoiaHR0cHM6Ly9hdXRoMC5vcGVuYWkuY29tLyIsInN1YiI6ImF1dGgwfDYzYWIxZTM1ZjE0NGQ2NjU3NWU0NzU3NyIsImF1ZCI6WyJodHRwczovL2FwaS5vcGVuYWkuY29tL3YxIiwiaHR0cHM6Ly9vcGVuYWkub3BlbmFpLmF1dGgwYXBwLmNvbS91c2VyaW5mbyJdLCJpYXQiOjE2OTE2Mjc5NDAsImV4cCI6MTY5MjgzNzU0MCwiYXpwIjoiVGRKSWNiZTE2V29USHROOTVueXl3aDVFNHlPbzZJdEciLCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG1vZGVsLnJlYWQgbW9kZWwucmVxdWVzdCBvcmdhbml6YXRpb24ucmVhZCBvcmdhbml6YXRpb24ud3JpdGUgb2ZmbGluZV9hY2Nlc3MifQ.1FYNQn5Hz_VGY2oC2CcRf4_BpXEmnFIFFrlLnIHopUpZidt2SYa3C-P0nuYDUQqWTreIDDyEPzNaPTJRky0YGqowSJe8yXRXHKLwZT3j94Gf79jwgl-zLtM5H4VOSbMUnyPI0zg0yTpCj7wdDRcoAZ2RPNj0YJNR6McTMWFVq94Mjm-s2TMf6xRMLT3QdPiYXAqn_SrrhI7blr_V9xUaDzf-D4Sd3TtT3i0lAjiM1AURjFJCW1Mrm2M44-7sCvz_obZm5M3QOAzB7NNoNHR2ML6mpF6fO7B2pz_KR7lMx5rEfAfxbGTHa6KOPoVWpTF6ukFt8_1J0UOaj7T0YsO8wQ"
+  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1UaEVOVUpHTkVNMVFURTRNMEZCTWpkQ05UZzVNRFUxUlRVd1FVSkRNRU13UmtGRVFrRXpSZyJ9.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL3Byb2ZpbGUiOnsiZW1haWwiOiJrZXhpbng0QGlsbGlub2lzLmVkdSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlfSwiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS9hdXRoIjp7InVzZXJfaWQiOiJ1c2VyLXhzYTJqYVNIS1RCd0ozVlZGbzlodUtzSCJ9LCJpc3MiOiJodHRwczovL2F1dGgwLm9wZW5haS5jb20vIiwic3ViIjoiYXV0aDB8NjM4YWFiOTA5ZWRkMDA1ZmY0NmEwMDRjIiwiYXVkIjpbImh0dHBzOi8vYXBpLm9wZW5haS5jb20vdjEiLCJodHRwczovL29wZW5haS5vcGVuYWkuYXV0aDBhcHAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTY5MTg3MjgwMywiZXhwIjoxNjkzMDgyNDAzLCJhenAiOiJUZEpJY2JlMTZXb1RIdE45NW55eXdoNUU0eU9vNkl0RyIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwgbW9kZWwucmVhZCBtb2RlbC5yZXF1ZXN0IG9yZ2FuaXphdGlvbi5yZWFkIG9yZ2FuaXphdGlvbi53cml0ZSBvZmZsaW5lX2FjY2VzcyJ9.W6am0EX005f31bDb7o1kncDRyC8cPT5vin6OMMppVUynNHqzjlmrZPp_SRHqnpPUQDdzi83w_IqI6cOy-n4CifeKKhIZVR87tsg9ThjY4XcM3sjSwFdDGABbRrI51iyU9Zo29Z2yde4NwTgdvITn4SBcdojxPOz97Nnviw6ETYNIO0DbdW5AOcQ7fsw9t4tAS1u-lKFLqvHbJKh9MvjW-AV9Tg-sPxH3yd0wtsLxvtvE_4lwW9r94xywjOwY0nflJQUjiPpakyVRp3gO4Oh4bGYM3jzU8HXTz00g_8Yk0Ha4jTFquIX58FPtIJcFF8xZe55oEBxbUon6IKoOXTBPXg"
 })
 altern = True
 audiopath = 'Temp.mp3'
@@ -127,6 +135,8 @@ def parseCommand(comm):
         print(key, ':', value)
   else:
     print("Invalid Command")
+  
+  print(timeDat)
 
 
 with open('GPT-prompt-ex.txt', 'r') as file:
@@ -159,24 +169,9 @@ def transcribe(audio):
                     slow = False)
     
     audioobj.save(audiopath)
-    storeTrans(result_text, out_result, audiopath)
-    retrTrans(altern)
     return [result_text, out_result, audiopath]
 
-def storeTrans(r, o, oA):
-  global res_text, out_res, out_aud
-  res_text = r
-  out_res = o
-  out_aud = oA
-  print(f'info stored. {res_text}, {out_res}')
 
-def retrTrans(flag):
-  print('returning...')
-  if(flag):
-    flag = not flag
-    return [res_text, out_res, out_aud]
-  flag = not flag
-  return [res_text + '?', out_res, out_aud]
 
 output_1 = gr.Textbox(label="Speech to Text")
 output_2 = gr.Textbox(label="ChatGPT Output")
@@ -188,12 +183,6 @@ inp = gr.Interface(
     inputs=[
         gr.inputs.Audio(source="microphone", type="filepath")
     ],
-    outputs=[]
-    )
-outp = gr.Interface(
-    title = 'AI-For-Elderly Chatbot', 
-    fn=retrTrans,
-    inputs=[],
     outputs=[
         output_1,  output_2, output_3
     ],
@@ -201,26 +190,13 @@ outp = gr.Interface(
 
 INP_ROUTE = '/input'
 OUTP_ROUTE = '/output'
-OUT_ROUTE = '/out'
-CALEND_ROUTE = '/calend'
 
 #Design
 
-iframe_dimensions = "height=300px width=100% style=\"max-width=600px; margin=auto;\""
+iframe_dimensions = "height=500px width=100% style=\"max-width=600px; margin=auto;\""
 bStyle = "bgcolor= \"black\" style=\"color:white; font-family:Roboto; text-align:center\""
 brack = '{'
 
-# resizeJS = f'''
-# <script>
-#         var frame = document.getElementById("IFResize");
-          
-#         frame.onload = function()
-#         {brack}
-#           frame.style.height = frame.contentWindow.document.body.scrollHeight + 'px';
-#           frame.style.width  = frame.contentWindow.document.body.scrollWidth+'px';  
-#         {brack}
-# </script>
-# '''
 
 button_style = "height:50px; width:500px; background:#FF8000; font-size:1em; color:#000000; padding:6px"
 
@@ -234,7 +210,7 @@ index_html = f'''
 Please record your response below.
 </h3>
 <h3>
-When finished, stop recording and click results.
+When finished, stop recording and wait for 5-10 seconds. Your results will be on the right.
 </h3>
 <h3>
 Events and medications will be added to the calendar.
@@ -242,37 +218,59 @@ Events and medications will be added to the calendar.
 <div>
 <iframe src={INP_ROUTE} {iframe_dimensions}></iframe>
 </div>
-<button style="{button_style}" onclick="window.location.href='{OUT_ROUTE}';">Results</button>
+<button style="{button_style}" onclick="window.location.href='{OUTP_ROUTE}';">View Calendar</button>
 </body>
 '''
 
-result_html = f'''
-<head>
-<link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet'>
-</head>
-<body {bStyle}>
-<div>
-<iframe src={OUTP_ROUTE} height=75% width=100%></iframe>
-<button style="{button_style}" onclick="window.location.href='/';">Back to Record</button>
-<iframe src={CALEND_ROUTE} height=130% width=100%></iframe>
-</div>
-</body>
-'''
 
 @app.get("/", response_class=HTMLResponse)
 def index():
   return index_html
 
-@app.get(f"{OUT_ROUTE}", response_class=HTMLResponse)
-def result():
-  return result_html
 
-@app.get(f'{CALEND_ROUTE}', response_class=HTMLResponse)
-def calend(request: Request):
-  return templates.TemplateResponse('calendar.html', {"request": request})
+# @app.get(f'{OUTP_ROUTE}', response_class=HTMLResponse)
+# def calend(request: Request):
+#   return templates.TemplateResponse('calendar.html', {"request": request})
 
+@app.get(f'{OUTP_ROUTE}')
+async def redirect_to_external():
+    web = webdriver.Chrome()
+    web.get('https://merry-puffpuff-ffea66.netlify.app/')
+
+    for key,value in timeDat.items():
+      print("inside exter: ", value)
+      nameInput = value['descript']
+      eventStartInp = value['time'].replace(':', '')
+      eventEndInp = value['time'].replace(':', '')
+
+      open_btn = web.find_element(By.CLASS_NAME, 'add-event')
+      open_btn.click()
+
+      time.sleep(2)
+
+      #replace the sample answer with actual answer here
+      name = web.find_element(By.CLASS_NAME, 'event-name')
+      name.send_keys(nameInput)
+
+      eventTimef = web.find_element(By.CLASS_NAME, 'event-time-from')
+      eventTimef.send_keys(eventStartInp)
+
+      eventTimet = web.find_element(By.CLASS_NAME, 'event-time-to')
+      eventTimet.send_keys(eventEndInp)
+
+
+      close_btn = web.find_element(By.CLASS_NAME, 'add-event-btn')
+      close_btn.click()
+
+    while(True):
+      pass
+
+
+
+
+
+# app = gr.mount_gradio_app(app, inp, path=INP_ROUTE)
 app = gr.mount_gradio_app(app, inp, path=INP_ROUTE)
-app = gr.mount_gradio_app(app, outp, path=OUTP_ROUTE)
 
 if __name__ == "__main__":
   import uvicorn
