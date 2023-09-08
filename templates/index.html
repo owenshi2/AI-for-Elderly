@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gradio Web Component App</title>
+    <!-- Include the Gradio JavaScript library -->
+    <script type="module" src="https://gradio.s3-us-west-2.amazonaws.com/3.39.0/gradio.js"></script>
+</head>
+<body>
+    <!-- Add the Gradio web component to your HTML -->
+    <gradio-app src="https://sallyxue-ai-for-elderly.hf.space"></gradio-app>
+    
+    <!-- Button to navigate to the calendar page -->
+    <button onclick="goToCalendarPage()">Go to Calendar</button>
+    
+    <!-- Placeholder for calendar content -->
+    <div id="calendar-container"></div>
+    
+    <script>
+        // JavaScript function to navigate to the calendar page
+        function goToCalendarPage() {
+            window.location.href = "calendar.html"; // Replace with the correct path
+        }
+        
+        // JavaScript code to fetch and inject calendar content
+        fetch('calendar.html')
+            .then(response => response.text())
+            .then(calendarContent => {
+                const calendarContainer = document.getElementById('calendar-container');
+                calendarContainer.innerHTML = calendarContent;
+            })
+            .catch(error => {
+                console.error('Error fetching calendar.html:', error);
+            });
+    </script>
+</body>
+</html>
+
+
